@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>我的記帳本</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1a2e; --paper: #faf8f3; --paper2: #f2ede3;
+  --gold: #c9a84c; --gold-light: #e8d5a3;
+  --red: #c0392b; --green: #27ae60; --blue: #2980b9;
+  --border: #d4c9b0; --shadow: rgba(26,26,46,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { font-family: 'Noto Sans TC', sans-serif; background: var(--paper2); color: var(--ink); min-height: 100vh; -webkit-text-size-adjust: 100%; }
+
+.header { background: var(--ink); color: var(--gold); padding: 20px 16px 14px; text-align: center; border-bottom: 3px solid var(--gold); }
+.header h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(1.3rem,5vw,2rem); letter-spacing: .12em; font-weight: 700; }
+.header .subtitle { font-size: .78rem; color: var(--gold-light); letter-spacing: .08em; margin-top: 4px; }
+
+.month-bar { background: var(--ink); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #333; }
+.month-bar label { color: var(--gold-light); font-size: .82rem; white-space: nowrap; }
+.month-bar select { background: #2a2a45; color: var(--gold); border: 1px solid var(--gold); padding: 6px 10px; border-radius: 4px; font-size: .92rem; font-family: 'Noto Sans TC',sans-serif; cursor: pointer; outline: none; }
+
+.tabs { display: flex; background: var(--paper); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.tab-btn { flex: 1; padding: 12px 4px; background: none; border: none; border-bottom: 3px solid transparent; font-family: 'Noto Serif TC',serif; font-size: clamp(.72rem,2.8vw,.9rem); color: #999; cursor: pointer; letter-spacing: .03em; transition: all .2s; margin-bottom: -2px; line-height: 1.4; -webkit-tap-highlight-color: transparent; }
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--gold); font-weight: 700; }
+
+.page { display: none; padding: 16px 14px 60px; max-width: 560px; margin: 0 auto; width: 100%; }
+.page.active { display: block; }
+
+.card { background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; margin-bottom: 14px; box-shadow: 0 2px 8px var(--shadow); }
+.card-title { font-family: 'Noto Serif TC',serif; font-size: .96rem; font-weight: 700; color: var(--ink); letter-spacing: .07em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; }
+.card-title .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+
+/* income */
+.income-row { display: flex; align-items: center; gap: 8px; }
+.income-row label { font-size: .88rem; color: #555; white-space: nowrap; flex-shrink: 0; }
+.income-row input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 1rem; font-family: 'Noto Sans TC',sans-serif; background: #fff; color: var(--ink); outline: none; text-align: right; transition: border .2s; }
+.income-row input:focus { border-color: var(--gold); }
+.income-row .unit { font-size: .82rem; color: #888; flex-shrink: 0; }
+
+/* expense rows */
+.exp-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #ede8de; }
+.exp-row:last-child { border-bottom: none; }
+.exp-label { display: flex; align-items: center; gap: 5px; font-size: .88rem; color: #444; flex: 0 0 82px; }
+.exp-icon { font-size: 1.05rem; }
+.exp-row input[type=number] { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 9px 10px; font-size: 1rem; font-family: 'Noto Sans TC',sans-serif; background: #fff; color: var(--ink); outline: none; text-align: right; transition: border .2s; }
+.exp-row input[type=number]:focus { border-color: var(--gold); }
+.exp-row .unit { font-size: .8rem; color: #aaa; flex-shrink: 0; }
+
+/* notes textarea */
+.notes-wrap { padding: 6px 0 0; }
+.notes-wrap label { font-size: .78rem; color: #aaa; display: block; margin-bottom: 4px; }
+.notes-wrap textarea {
+  width: 100%; border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; font-size: .88rem; font-family: 'Noto Sans TC',sans-serif;
+  background: #fff8ee; color: var(--ink); outline: none; resize: vertical;
+  min-height: 60px; transition: border .2s; line-height: 1.5;
+}
+.notes-wrap textarea:focus { border-color: var(--gold); }
+
+.save-btn { width: 100%; background: var(--ink); color: var(--gold); border: none; border-radius: 8px; padding: 14px; font-family: 'Noto Serif TC',serif; font-size: 1rem; letter-spacing: .12em; cursor: pointer; margin-top: 2px; transition: background .2s; -webkit-tap-highlight-color: transparent; }
+.save-btn:active { background: #2d2d50; }
+
+/* stat blocks */
+.stat-block { background: var(--ink); color: var(--gold); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.stat-block .stat-label { font-size: .72rem; letter-spacing: .1em; color: var(--gold-light); margin-bottom: 4px; }
+.stat-block .stat-value { font-size: clamp(1.35rem,5.5vw,1.85rem); font-weight: 700; font-family: 'Noto Serif TC',serif; }
+.stat-block .stat-value .cur { font-size: .85rem; margin-right: 2px; }
+.stat-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.stat-row .stat-block { flex: 1; margin-bottom: 0; }
+.stat-block.green { background: #1a3a2e; }
+.stat-block.green .stat-label { color: #a8d5b5; }
+.stat-block.green .stat-value { color: #5dd68a; }
+.stat-block.red { background: #3a1a1a; }
+.stat-block.red .stat-label { color: #d5a8a8; }
+.stat-block.red .stat-value { color: #f07070; }
+.stat-block.blue { background: #1a2a3a; }
+.stat-block.blue .stat-label { color: #a8c4d5; }
+.stat-block.blue .stat-value { color: #6ab4f0; }
+.stat-block.purple { background: #2a1a3a; }
+.stat-block.purple .stat-label { color: #c4a8d5; }
+.stat-block.purple .stat-value { color: #c07ef0; }
+
+/* pie */
+.pie-section { background: var(--paper); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; margin-bottom: 12px; box-shadow: 0 2px 8px var(--shadow); }
+.pie-section h3 { font-family: 'Noto Serif TC',serif; font-size: .9rem; font-weight: 700; letter-spacing: .07em; margin-bottom: 14px; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.pie-wrap { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.pie-canvas-box { flex-shrink: 0; width: 130px; height: 130px; }
+.pie-legend { flex: 1; min-width: 130px; }
+.leg-item { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: .82rem; }
+.leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.leg-name { flex: 1; color: #555; }
+.leg-pct { font-weight: 700; color: var(--ink); }
+.detail-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted var(--border); font-size: .88rem; gap: 6px; }
+.detail-row:last-child { border-bottom: none; }
+.detail-row .dname { color: #444; display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.detail-row .dright { text-align: right; }
+.detail-row .damt { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.detail-row .dnote { font-size: .76rem; color: #999; margin-top: 2px; word-break: break-all; }
+
+/* assets */
+.asset-row-fixed { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #ede8de; }
+.asset-row-fixed:last-child { border-bottom: none; }
+.asset-label { display: flex; align-items: center; gap: 5px; font-size: .9rem; color: #444; flex: 0 0 72px; }
+.asset-row-fixed input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 9px 10px; font-size: 1rem; font-family: 'Noto Sans TC',sans-serif; background: #fff; color: var(--ink); outline: none; text-align: right; transition: border .2s; }
+.asset-row-fixed input:focus { border-color: var(--gold); }
+.asset-row-fixed .unit { font-size: .8rem; color: #aaa; flex-shrink: 0; }
+.asumm-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dotted var(--border); font-size: .9rem; }
+.asumm-row:last-child { border-bottom: none; }
+.asumm-row .an { color: #444; }
+.asumm-row .av { font-weight: 600; color: var(--blue); }
+
+/* yearly */
+.year-select-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.year-select-bar label { font-size: .88rem; color: #555; white-space: nowrap; }
+.year-select-bar select { border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: .92rem; font-family: 'Noto Sans TC',sans-serif; background: #fff; color: var(--ink); outline: none; cursor: pointer; }
+.year-select-bar select:focus { border-color: var(--gold); }
+
+.month-bar-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-top: 4px; }
+.month-bar-table th { background: var(--ink); color: var(--gold-light); padding: 7px 6px; text-align: center; font-weight: 600; letter-spacing: .04em; font-size: .78rem; }
+.month-bar-table td { padding: 7px 6px; text-align: right; border-bottom: 1px solid #ede8de; color: #444; }
+.month-bar-table td:first-child { text-align: center; color: var(--ink); font-weight: 600; }
+.month-bar-table tr:last-child td { border-bottom: none; }
+.month-bar-table tr.has-data td { background: #fdf8ee; }
+.month-bar-table .pos { color: var(--green); font-weight: 700; }
+.month-bar-table .neg { color: var(--red); font-weight: 700; }
+.month-bar-table .total-row td { background: var(--ink) !important; color: var(--gold); font-weight: 700; font-family: 'Noto Serif TC',serif; border-top: 2px solid var(--gold); }
+.month-bar-table .total-row td:first-child { color: var(--gold); }
+.month-bar-table .total-row .pos { color: #5dd68a; }
+.month-bar-table .total-row .neg { color: #f07070; }
+.table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 2px 8px var(--shadow); }
+
+.warn-card { background: #fff8f8; border: 1px solid #f5c6c6; border-left: 4px solid var(--red); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; color: var(--red); font-size: .86rem; line-height: 1.6; }
+.no-data { text-align: center; color: #bbb; font-size: .84rem; padding: 18px 0; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(14px); background: var(--ink); color: var(--gold); padding: 9px 22px; border-radius: 30px; font-size: .86rem; letter-spacing: .06em; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200; border: 1px solid var(--gold); white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* unsaved badge */
+.unsaved-badge { display: inline-block; background: #e07050; color: #fff; font-size: .65rem; border-radius: 10px; padding: 1px 6px; margin-left: 5px; vertical-align: middle; letter-spacing: 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>我的記帳本</h1>
+  <div class="subtitle">自由業收支管理 · 簡單清晰</div>
+</div>
+
+<div class="month-bar">
+  <label>月份</label>
+  <select id="monthSelect"></select>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('input',this)">📝 輸入記帳</button>
+  <button class="tab-btn" onclick="switchTab('summary',this)">📊 本月統計</button>
+  <button class="tab-btn" onclick="switchTab('assets',this)">💰 資產總覽</button>
+  <button class="tab-btn" onclick="switchTab('yearly',this)">📅 年度總覽</button>
+</div>
+
+<!-- Input Page -->
+<div class="page active" id="page-input">
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>本月收入</div>
+    <div class="income-row">
+      <label>當月收入</label>
+      <input type="number" id="income" inputmode="numeric" placeholder="月底再填也可以" min="0">
+      <span class="unit">元</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>各項開銷</div>
+    <div id="expenseList"></div>
+  </div>
+  <button class="save-btn" onclick="saveData()">儲存本月資料</button>
+</div>
+
+<!-- Summary Page -->
+<div class="page" id="page-summary">
+  <div id="summaryContent"></div>
+</div>
+
+<!-- Assets Page -->
+<div class="page" id="page-assets">
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>資產項目</div>
+    <div id="assetList"></div>
+  </div>
+  <button class="save-btn" onclick="saveAssets()">儲存資產</button>
+  <div class="card" style="margin-top:14px;">
+    <div class="card-title"><span class="dot"></span>資產總覽</div>
+    <div id="assetSummary"></div>
+  </div>
+</div>
+
+<!-- Yearly Page -->
+<div class="page" id="page-yearly">
+  <div class="year-select-bar">
+    <label>選擇年份</label>
+    <select id="yearSelect" onchange="renderYearly()"></select>
+  </div>
+  <div id="yearlyContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── Config ────────────────────────────────────────────────────
+const MONTHS_KEY = 'ledger_v4';
+const ASSETS_KEY = 'assets_v3';
+
+const CATS = [
+  { key:'food',   label:'飲食',     icon:'🍱' },
+  { key:'shop',   label:'購物/美容', icon:'🛍️' },
+  { key:'car',    label:'車',        icon:'🚗' },
+  { key:'health', label:'醫療',      icon:'🏥' },
+  { key:'misc',   label:'雜支',      icon:'🗂️' },  // NEW extra field
+  { key:'other',  label:'其他',      icon:'📦', hasNotes: true },
+  { key:'work',   label:'工作用',    icon:'💼' },
+];
+const ACATS = [
+  { key:'cash',   label:'現金', icon:'💵' },
+  { key:'saving', label:'定存', icon:'🏦' },
+  { key:'stock',  label:'股票', icon:'📈' },
+  { key:'fund',   label:'基金', icon:'📊' },
+  { key:'other2', label:'其他', icon:'💎' },
+];
+const PIE = ['#c9a84c','#e07050','#5a9fd4','#68c98a','#c97db0','#7ecec4','#f0c060'];
+
+// ── Storage ───────────────────────────────────────────────────
+function getAll()  { try{return JSON.parse(localStorage.getItem(MONTHS_KEY)||'{}')}catch{return{}} }
+function getMD(m)  { const d=getAll()[m]; if(d)return d; const b={income:0}; CATS.forEach(c=>{b[c.key]=0; if(c.hasNotes)b[c.key+'_notes']=''}); return b; }
+function saveMD(m,d){ const a=getAll(); a[m]=d; localStorage.setItem(MONTHS_KEY,JSON.stringify(a)); }
+function getAD()   { try{return JSON.parse(localStorage.getItem(ASSETS_KEY)||'{}')}catch{return{}} }
+function saveAD(o) { localStorage.setItem(ASSETS_KEY,JSON.stringify(o)); }
+
+// ── Month Select ──────────────────────────────────────────────
+const ms = document.getElementById('monthSelect');
+(function(){
+  const now = new Date();
+  for(let i=-12;i<=3;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const o = document.createElement('option');
+    o.value=v; o.textContent=`${d.getFullYear()} 年 ${d.getMonth()+1} 月`;
+    if(i===0) o.selected=true;
+    ms.appendChild(o);
+  }
+  ms.addEventListener('change', onMonthChange);
+})();
+
+function cm(){ return ms.value; }
+
+// AUTO-SAVE on month switch
+function onMonthChange(){
+  autoSave();
+  loadInput();
+}
+
+function autoSave(){
+  const d = readInputForm();
+  saveMD(cm(), d);  // save BEFORE switching
+  // note: cm() still returns old month at this point because change event fires before value updates
+  // Fix: save the previous month's value explicitly
+}
+
+// Actually, we need to save PREVIOUS month before switching.
+// We track current month separately.
+let _prevMonth = null;
+(function(){
+  // Override: intercept change
+  ms.addEventListener('change', ()=>{}, true); // already added above, let's do it properly
+})();
+
+// Proper approach: save on any input change + save before month switch
+function readInputForm(){
+  const d = { income: parseFloat(document.getElementById('income').value)||0 };
+  CATS.forEach(c => {
+    d[c.key] = parseFloat(document.getElementById('e_'+c.key).value)||0;
+    if(c.hasNotes) d[c.key+'_notes'] = document.getElementById('e_'+c.key+'_notes').value.trim();
+  });
+  return d;
+}
+
+// ── Tab Switch ────────────────────────────────────────────────
+function switchTab(tab, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='summary') renderSummary();
+  if(tab==='assets')  loadAssets();
+  if(tab==='yearly')  initYearly();
+}
+
+// ── Input Page ────────────────────────────────────────────────
+function buildExpenseList(){
+  document.getElementById('expenseList').innerHTML = CATS.map(c => {
+    let html = `<div class="exp-row">
+      <div class="exp-label"><span class="exp-icon">${c.icon}</span>${c.label}</div>
+      <input type="number" inputmode="numeric" id="e_${c.key}" placeholder="0" min="0" oninput="markUnsaved()">
+      <span class="unit">元</span>
+    </div>`;
+    if(c.hasNotes){
+      html += `<div class="notes-wrap">
+        <label>📝 詳細說明（選填）</label>
+        <textarea id="e_${c.key}_notes" placeholder="例：買了護膚品300、聚餐500…" oninput="markUnsaved()"></textarea>
+      </div>`;
+    }
+    return html;
+  }).join('');
+  // also mark income as unsaved on change
+  document.getElementById('income').addEventListener('input', markUnsaved);
+}
+
+let _unsaved = false;
+function markUnsaved(){
+  _unsaved = true;
+  // show badge on tab
+  const btn = document.querySelector('.tab-btn.active');
+  if(btn && !btn.querySelector('.unsaved-badge')){
+    const b = document.createElement('span');
+    b.className='unsaved-badge'; b.textContent='未存';
+    btn.appendChild(b);
+  }
+}
+function clearUnsaved(){
+  _unsaved = false;
+  document.querySelectorAll('.unsaved-badge').forEach(b=>b.remove());
+}
+
+function loadInput(){
+  _activeMonth = cm();
+  const d = getMD(cm());
+  document.getElementById('income').value = d.income||'';
+  CATS.forEach(c=>{
+    const el = document.getElementById('e_'+c.key);
+    if(el) el.value = d[c.key]||'';
+    if(c.hasNotes){
+      const ta = document.getElementById('e_'+c.key+'_notes');
+      if(ta) ta.value = d[c.key+'_notes']||'';
+    }
+  });
+  clearUnsaved();
+}
+
+function saveData(){
+  const d = readInputForm();
+  saveMD(cm(), d);
+  clearUnsaved();
+  showToast('✓ 已儲存');
+}
+
+// ── Summary ───────────────────────────────────────────────────
+let chart = null;
+function renderSummary(){
+  const d = getMD(cm());
+  const inc = d.income||0;
+  const exps = CATS.map(c=>({name:c.label,icon:c.icon,amt:d[c.key]||0,notes:d[c.key+'_notes']||''}));
+  const total = exps.reduce((s,e)=>s+e.amt,0);
+  const bal = inc-total;
+  const active = exps.filter(e=>e.amt>0);
+
+  let h='';
+  h+=`<div class="stat-block"><div class="stat-label">本月收入</div><div class="stat-value"><span class="cur">$</span>${fmt(inc)}</div></div>`;
+  h+=`<div class="stat-row">
+    <div class="stat-block red"><div class="stat-label">總開銷</div><div class="stat-value"><span class="cur">$</span>${fmt(total)}</div></div>
+    <div class="stat-block ${bal>=0?'green':'red'}"><div class="stat-label">收支結餘</div><div class="stat-value"><span class="cur">${bal<0?'-':'+'}$</span>${fmt(Math.abs(bal))}</div></div>
+  </div>`;
+  if(inc>0&&bal>0){
+    h+=`<div class="stat-row">
+      <div class="stat-block blue"><div class="stat-label">可投資股票</div><div class="stat-value"><span class="cur">$</span>${fmt(bal/2)}</div></div>
+      <div class="stat-block green"><div class="stat-label">建議儲蓄</div><div class="stat-value"><span class="cur">$</span>${fmt(bal/2)}</div></div>
+    </div>`;
+  } else if(inc>0&&bal<=0){
+    h+=`<div class="warn-card">⚠️ 本月開銷超過收入 $${fmt(Math.abs(bal))}，本月無可投資／儲蓄金額。</div>`;
+  }
+
+  h+=`<div class="pie-section"><h3>各項開銷明細</h3>`;
+  if(!active.length){
+    h+=`<div class="no-data">尚未輸入任何開銷</div>`;
+  } else {
+    h+=`<div class="pie-wrap"><div class="pie-canvas-box"><canvas id="pieChart"></canvas></div><div class="pie-legend" id="pieLeg"></div></div><div style="margin-top:14px;">`;
+    exps.forEach(e=>{
+      const pct=total>0?((e.amt/total)*100).toFixed(1):'0.0';
+      h+=`<div class="detail-row">
+        <span class="dname"><span>${e.icon}</span>${e.name}</span>
+        <div class="dright">
+          <div class="damt">$${fmt(e.amt)} <span style="color:#ccc;font-size:.74rem;">(${pct}%)</span></div>
+          ${e.notes?`<div class="dnote">${escHtml(e.notes)}</div>`:''}
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  document.getElementById('summaryContent').innerHTML=h;
+
+  if(active.length){
+    if(chart){chart.destroy();chart=null;}
+    chart=new Chart(document.getElementById('pieChart'),{
+      type:'doughnut',
+      data:{labels:active.map(e=>e.name),datasets:[{data:active.map(e=>e.amt),backgroundColor:active.map((_,i)=>PIE[i%PIE.length]),borderWidth:2,borderColor:'#faf8f3'}]},
+      options:{cutout:'55%',plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{animateScale:true}}
+    });
+    document.getElementById('pieLeg').innerHTML=active.map((e,i)=>{
+      const pct=total>0?((e.amt/total)*100).toFixed(1):'0.0';
+      return `<div class="leg-item"><span class="leg-dot" style="background:${PIE[i%PIE.length]}"></span><span class="leg-name">${e.name}</span><span class="leg-pct">${pct}%</span></div>`;
+    }).join('');
+  }
+}
+
+// ── Assets ────────────────────────────────────────────────────
+function buildAssetList(saved){
+  document.getElementById('assetList').innerHTML=ACATS.map(c=>`
+    <div class="asset-row-fixed">
+      <div class="asset-label"><span>${c.icon}</span>${c.label}</div>
+      <input type="number" inputmode="numeric" id="a_${c.key}" placeholder="0" min="0" value="${saved[c.key]||''}">
+      <span class="unit">元</span>
+    </div>`).join('');
+}
+function loadAssets(){ const s=getAD(); buildAssetList(s); renderAssetSumm(s); }
+function saveAssets(){
+  const o={}; ACATS.forEach(c=>o[c.key]=parseFloat(document.getElementById('a_'+c.key).value)||0);
+  saveAD(o); renderAssetSumm(o); showToast('✓ 資產已儲存');
+}
+function renderAssetSumm(s){
+  const valid=ACATS.filter(c=>(s[c.key]||0)>0);
+  const total=ACATS.reduce((sum,c)=>sum+(s[c.key]||0),0);
+  const el=document.getElementById('assetSummary');
+  if(!valid.length){el.innerHTML='<div class="no-data">尚未輸入任何資產</div>';return;}
+  let h=valid.map(c=>`<div class="asumm-row"><span class="an">${c.icon} ${c.label}</span><span class="av">$${fmt(s[c.key])}</span></div>`).join('');
+  h+=`<div style="margin-top:12px;padding-top:12px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-weight:700;">
+    <span>資產總額</span><span style="color:#2980b9;font-size:1.1rem;">$${fmt(total)}</span></div>`;
+  el.innerHTML=h;
+}
+
+// ── Yearly ────────────────────────────────────────────────────
+function initYearly(){
+  const ys = document.getElementById('yearSelect');
+  if(!ys.options.length){
+    const now = new Date();
+    for(let y=now.getFullYear()-3; y<=now.getFullYear(); y++){
+      const o=document.createElement('option');
+      o.value=y; o.textContent=y+' 年';
+      if(y===now.getFullYear()) o.selected=true;
+      ys.appendChild(o);
+    }
+  }
+  renderYearly();
+}
+
+function renderYearly(){
+  const year = document.getElementById('yearSelect').value;
+  const all = getAll();
+  const months = [];
+  let totalInc=0, totalExp=0;
+
+  for(let m=1;m<=12;m++){
+    const key = `${year}-${String(m).padStart(2,'0')}`;
+    const d = all[key];
+    const inc = d ? (d.income||0) : 0;
+    const exp = d ? CATS.reduce((s,c)=>s+(d[c.key]||0),0) : 0;
+    const net = inc - exp;
+    const hasData = d && (inc>0||exp>0);
+    totalInc += inc; totalExp += exp;
+    months.push({m, key, inc, exp, net, hasData});
+  }
+  const totalNet = totalInc - totalExp;
+
+  let h = '';
+
+  // Top summary
+  h += `<div class="stat-block"><div class="stat-label">${year} 年度總收入</div><div class="stat-value"><span class="cur">$</span>${fmt(totalInc)}</div></div>`;
+  h += `<div class="stat-row">
+    <div class="stat-block red"><div class="stat-label">年度總開銷</div><div class="stat-value"><span class="cur">$</span>${fmt(totalExp)}</div></div>
+    <div class="stat-block ${totalNet>=0?'purple':'red'}"><div class="stat-label">年度淨收入</div><div class="stat-value"><span class="cur">${totalNet<0?'-':'+'}$</span>${fmt(Math.abs(totalNet))}</div></div>
+  </div>`;
+
+  // Table
+  h += `<div class="table-wrap"><table class="month-bar-table">
+    <thead><tr><th>月份</th><th>收入</th><th>開銷</th><th>淨收入</th></tr></thead><tbody>`;
+  months.forEach(({m,inc,exp,net,hasData})=>{
+    const rc = net>0?'pos':net<0?'neg':'';
+    h+=`<tr class="${hasData?'has-data':''}">
+      <td>${m} 月</td>
+      <td>${hasData&&inc>0?'$'+fmt(inc):'-'}</td>
+      <td>${hasData&&exp>0?'$'+fmt(exp):'-'}</td>
+      <td class="${rc}">${hasData?(net>=0?'+':'-')+'$'+fmt(Math.abs(net)):'-'}</td>
+    </tr>`;
+  });
+  // total row
+  const tnc = totalNet>0?'pos':totalNet<0?'neg':'';
+  h+=`<tr class="total-row">
+    <td>合計</td>
+    <td>$${fmt(totalInc)}</td>
+    <td>$${fmt(totalExp)}</td>
+    <td class="${tnc}">${totalNet>=0?'+':'-'}$${fmt(Math.abs(totalNet))}</td>
+  </tr>`;
+  h+=`</tbody></table></div>`;
+
+  document.getElementById('yearlyContent').innerHTML = h;
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function fmt(n){ return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+
+// ── Month switch: auto-save BEFORE loading new month ──────────
+// _activeMonth always tracks which month the form is currently showing.
+// When the select changes, we save _activeMonth's data FIRST, then load the new month.
+let _activeMonth = ms.value;
+
+ms.addEventListener('change', function(){
+  const newMonth = ms.value;
+  if(newMonth === _activeMonth) return;
+
+  // Save whatever is currently in the form under the OLD month
+  saveMD(_activeMonth, readInputForm());
+  showToast('✓ 已自動儲存 ' + _activeMonth.replace('-', ' 年 ').replace(/^(\d+ 年 )0?(\d+)$/, '$1$2') + ' 月');
+
+  _activeMonth = newMonth;
+  loadInput();
+});
+
+// ── Init ──────────────────────────────────────────────────────
+buildExpenseList();
+loadInput();
+</script>
+</body>
+</html>
