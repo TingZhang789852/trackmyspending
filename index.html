@@ -221,7 +221,7 @@ const CATS = [
   { key:'health', label:'醫療',      icon:'🏥' },
   { key:'misc',   label:'雜支',      icon:'🗂️' },  // NEW extra field
   { key:'other',  label:'其他',      icon:'📦', hasNotes: true },
-  { key:'work',   label:'工作用',    icon:'💼' },
+  { key:'work',   label:'工作用',    icon:'💼', hasNotes: true },
 ];
 const ACATS = [
   { key:'cash',   label:'現金', icon:'💵' },
@@ -533,6 +533,21 @@ ms.addEventListener('change', function(){
 });
 
 // ── Init ──────────────────────────────────────────────────────
+// Pre-load Jan-Mar 2026 data (only if not already saved)
+(function seedData(){
+  const seed = {
+    '2026-01': { income:38600, food:9382, shop:5584, car:654, health:4047, misc:0, other:21956, other_notes:'健保費 $4,956、爸媽禮物 $17,000', work:0 },
+    '2026-02': { income:50180, food:5492, shop:2376, car:4304, health:120,  misc:0, other:1200,  other_notes:'點燈', work:237, work_notes:'音樂庫' },
+    '2026-03': { income:28000, food:6377, shop:3208, car:120,  health:200,  misc:0, other:3399,  other_notes:'小米檯燈（工作用）', work:3723, work_notes:'音樂庫 $241、mic+相機背帶 $3,482' },
+  };
+  const all = getAll();
+  let changed = false;
+  Object.entries(seed).forEach(([m, d]) => {
+    if(!all[m]){ all[m] = d; changed = true; }
+  });
+  if(changed) localStorage.setItem(MONTHS_KEY, JSON.stringify(all));
+})();
+
 buildExpenseList();
 loadInput();
 </script>
