@@ -446,7 +446,9 @@ async function renderSummary() {
   const bal = inc-total;
   const active = exps.filter(e=>e.amt>0);
 
+  const [sy, sm] = cm().split('-');
   let h='';
+  h+=`<div style="font-family:'Noto Serif TC',serif;font-size:.85rem;color:#888;letter-spacing:.08em;margin-bottom:12px;">${sy} 年 ${parseInt(sm)} 月統計</div>`;
   h+=`<div class="stat-block"><div class="stat-label">本月收入</div><div class="stat-value"><span class="cur">$</span>${fmt(inc)}</div></div>`;
   h+=`<div class="stat-row"><div class="stat-block red"><div class="stat-label">總開銷</div><div class="stat-value"><span class="cur">$</span>${fmt(total)}</div></div><div class="stat-block ${bal>=0?'green':'red'}"><div class="stat-label">收支結餘</div><div class="stat-value"><span class="cur">${bal<0?'-':'+'}$</span>${fmt(Math.abs(bal))}</div></div></div>`;
   if(inc>0&&bal>0){
@@ -559,24 +561,22 @@ window.renderYearly = async function(){
 
 // ── Utils ─────────────────────────────────────────────────────
 window.jumpToMonth = function(monthKey) {
-  // Switch month select
   const ms = document.getElementById('monthSelect');
   ms.value = monthKey;
-  // Trigger save of current month and load new one
   const newMonth = monthKey;
   if(newMonth !== _activeMonth) {
     saveMonthData(_activeMonth, readInputForm()).then(() => {
       _activeMonth = newMonth;
       loadInput();
     });
+  } else {
+    loadInput();
   }
-  // Switch to summary tab
-  const summaryBtn = document.querySelectorAll('.tab-btn')[1];
+  // Switch to input tab so user can edit
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-summary').classList.add('active');
-  summaryBtn.classList.add('active');
-  renderSummary();
+  document.getElementById('page-input').classList.add('active');
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
 };
 
 function fmt(n){return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:0});}
