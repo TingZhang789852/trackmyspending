@@ -417,6 +417,8 @@ async function seedIfEmpty() {
     '2026-01': { income:38600, food:9382, shop:5584, car:654, health:4047, misc:0, other:21956, other_notes:'健保費 $4,956、爸媽禮物 $17,000', work:0, work_notes:'' },
     '2026-02': { income:50180, food:5492, shop:2376, car:4304, health:120, misc:0, other:1200, other_notes:'點燈', work:237, work_notes:'音樂庫' },
     '2026-03': { income:28000, food:6377, shop:3208, car:120, health:200, misc:0, other:3399, other_notes:'小米檯燈（工作用）', work:3723, work_notes:'音樂庫 $241、mic+相機背帶 $3,482' },
+    '2026-04': { income:0, food:5421, shop:3954, car:342, health:0, misc:0, other:1652, other_notes:'健保費', work:0, work_notes:'' },
+    '2026-05': { income:0, food:0, shop:0, car:0, health:0, misc:0, other:0, other_notes:'', work:0, work_notes:'' },
   };
   for(const [m, d] of Object.entries(seed)) {
     const snap = await getDoc(monthDoc(m));
@@ -545,7 +547,9 @@ window.renderYearly = async function(){
   h+=`<div class="table-wrap"><table class="month-bar-table"><thead><tr><th>月份</th><th>收入</th><th>開銷</th><th>淨收入</th></tr></thead><tbody>`;
   months.forEach(({m,inc,exp,net,hasData})=>{
     const rc=net>0?'pos':net<0?'neg':'';
-    h+=`<tr class="${hasData?'has-data':''}"><td>${m} 月</td><td>${hasData&&inc>0?'$'+fmt(inc):'-'}</td><td>${hasData&&exp>0?'$'+fmt(exp):'-'}</td><td class="${rc}">${hasData?(net>=0?'+':'-')+'$'+fmt(Math.abs(net)):'-'}</td></tr>`;
+    const mKey=`${year}-${String(m).padStart(2,'0')}`;
+    const mLabel=hasData?`<span style="cursor:pointer;color:var(--gold);text-decoration:underline;" onclick="jumpToMonth('${mKey}')">${m} 月</span>`:`${m} 月`;
+    h+=`<tr class="${hasData?'has-data':''}"><td>${mLabel}</td><td>${hasData&&inc>0?'$'+fmt(inc):'-'}</td><td>${hasData&&exp>0?'$'+fmt(exp):'-'}</td><td class="${rc}">${hasData?(net>=0?'+':'-')+'$'+fmt(Math.abs(net)):'-'}</td></tr>`;
   });
   const tnc=totalNet>0?'pos':totalNet<0?'neg':'';
   h+=`<tr class="total-row"><td>合計</td><td>$${fmt(totalInc)}</td><td>$${fmt(totalExp)}</td><td class="${tnc}">${totalNet>=0?'+':'-'}$${fmt(Math.abs(totalNet))}</td></tr>`;
@@ -554,6 +558,27 @@ window.renderYearly = async function(){
 };
 
 // ── Utils ─────────────────────────────────────────────────────
+window.jumpToMonth = function(monthKey) {
+  // Switch month select
+  const ms = document.getElementById('monthSelect');
+  ms.value = monthKey;
+  // Trigger save of current month and load new one
+  const newMonth = monthKey;
+  if(newMonth !== _activeMonth) {
+    saveMonthData(_activeMonth, readInputForm()).then(() => {
+      _activeMonth = newMonth;
+      loadInput();
+    });
+  }
+  // Switch to summary tab
+  const summaryBtn = document.querySelectorAll('.tab-btn')[1];
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-summary').classList.add('active');
+  summaryBtn.classList.add('active');
+  renderSummary();
+};
+
 function fmt(n){return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:0});}
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
